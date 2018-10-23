@@ -15,46 +15,70 @@ void printBits(char m)
     cout << endl;
 }
 
-string base64EncodeString(string input)
+string base64EncodeString(string data)
 {
     char in[3], out[4];
     string base64;
-    base64.reserve((input.length() * 4 / 3) & ~3);
+    base64.reserve((data.length() * 4 / 3) & ~3);
    
     int i;
-    for(i = 0; i + 2 < input.length(); i+=3)
+    for(i = 0; i + 2 < data.length(); i+=3)
     {
-        in[0] = input[i];
-        in[1] = input[i + 1];
-        in[2] = input[i + 2];
+        in[0] = data[i];
+        in[1] = data[i + 1];
+        in[2] = data[i + 2];
 
         Base64Encoder::encode(in, out); 
         base64 += out;
     }
 
 
-    if(i == input.length())
+    if(i == data.length())
         return base64;
 
     int padding = 1;
     
-    if (i + 1 == input.length())
+    if (i + 1 == data.length())
     {
         in[1] = 0;
         padding = 2;
     }
-    else if(i + 2 == input.length())
+    else if(i + 2 == data.length())
     {
-        in[1] = input[i+1];
+        in[1] = data[i+1];
     }
 
-    in[0] = input[i];
+    in[0] = data[i];
     in[2] = 0;
 
     Base64Encoder::encode(in, out, padding); 
     base64 += out;
 
     return base64;
+}
+
+string base64DecodeString(string base64)
+{
+    if(base64.length() % 4)
+        return string("");
+
+    char in[4], out[3];
+    string data;
+    data.reserve(base64.length() * 3 / 4);
+
+    int i;
+    for(int i = 0; i + 3 < base64.length(); i+=4)
+    {
+        in[0] = base64[i];
+        in[1] = base64[i + 1];
+        in[2] = base64[i + 2];
+        in[3] = base64[i + 3];
+
+        Base64Decoder::decode(in, out);
+        data += out;
+    }
+    
+    return data;
 }
 
 int main(int argc, char **argv)
@@ -65,12 +89,13 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    string s = string("any carnal pleasure.");
+    string s = string("any carnal pleasure");
     string b64 = base64EncodeString(s);
+    string d = base64DecodeString(b64);
 
     cout << "s  : " << s << endl;
     cout << "b64: " << b64 << endl;
-
+    cout << "d  : " << s << endl;
 
     return 0;
 }
