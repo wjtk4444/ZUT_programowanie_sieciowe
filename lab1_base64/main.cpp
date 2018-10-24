@@ -21,7 +21,7 @@ string base64EncodeString(string data)
     string base64;
     base64.reserve((data.length() * 4 / 3) & ~3);
    
-    int i;
+    unsigned int i;
     for(i = 0; i + 2 < data.length(); i+=3)
     {
         in[0] = data[i];
@@ -66,8 +66,8 @@ string base64DecodeString(string base64)
     string data;
     data.reserve(base64.length() * 3 / 4);
 
-    int i;
-    for(int i = 0; i + 3 < base64.length(); i+=4)
+    unsigned int i;
+    for( i = 0; i + 3 + 4 < base64.length(); i+=4)
     {
         in[0] = base64[i];
         in[1] = base64[i + 1];
@@ -77,6 +77,22 @@ string base64DecodeString(string base64)
         Base64Decoder::decode(in, out);
         data += out;
     }
+
+    in[0] = base64[i];
+    in[1] = base64[i + 1];
+
+    int padding = 0 + (in[2] == '=' ? 1 : 0) + (in[3] == '=' ? 1 : 0); 
+
+    in[2] = padding > 1 ? 0 : base64[i + 2];
+    in[3] = padding > 0 ? 0 : base64[i + 3];
+
+    Base64Decoder::decode(in, out);
+    
+    data += out[0];
+    if(padding > 1)
+        data += out[1];
+    if(padding > 0)
+        data += out[2];
     
     return data;
 }
