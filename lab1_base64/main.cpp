@@ -97,22 +97,102 @@ string base64DecodeString(string base64)
     return data;
 }
 
+void printUsageDetails(char *argv0)
+{
+    cout << "USAGE (1): " << argv0 << " option data" << endl;
+    cout << "USAGE (2): " << argv0 << " option inputFile.ext outputFile.ext" << endl;
+    cout << "AVAILABLE OPTIONS: e - encode, d - decode" << endl;
+}
+
 int main(int argc, char **argv)
 {
-    if(0 && argc != 4)
+    if((argc != 3 && argc != 4) || (argv[1][0] != 'e' && argv[1][0] != 'd'))
     {
-        cout << "USAGE: " << argv[0] << " encode/decode in.ext out.ext" << endl;
-        return 0;
+        printUsageDetails(argv[0]);
+        return 1;
     }
 
-    string s = string("any carnal pleasure");
-    string b64 = base64EncodeString(s);
-    string d = base64DecodeString(b64);
+    bool encode = argv[1][0] == 'e';
 
-    cout << "s  : " << s << endl;
-    cout << "b64: " << b64 << endl;
-    cout << "d  : " << s << endl;
+    if(argc == 3) 
+    {
+        string data(argv[2]);
+        
+        if(encode)
+            cout << base64EncodeString(data);
+        else // decode
+            cout << base64DecodeString(data);
 
+        cout << endl;
+
+        return 0;
+    }
+    else if(argc == 4)
+    {
+        ifstream inputFile(argv[2], ios::in | ios::binary);
+        if(!inputFile.is_open())
+        {
+            cout << "Failed to open file\"" << argv[2] << "\" for reading." << endl;
+            printUsageDetails(argv[0]);
+            
+            return 0;
+        }
+
+        ofstream outputFile(argv[2], ios::out | ios::binary);
+        if(!outputFile.is_open())
+        {
+            cout << "Failed to open file\"" << argv[3] << "\" for writing." << endl;
+            printUsageDetails(argv[0]);
+            
+            return 0;
+        }
+
+        inputFile.seekg(0, inputFile.end);
+        int inputLength = inputFile.tellg();
+        inputFile.seekg(0, inputFile.beg);
+        
+        if(encode)
+        {
+            char in[3], out[4];
+            for(int i = 0; i < inputLength / 3; i++)
+            {
+                inputFile.read(in, 3);
+                Base64Encoder::encode(in, out);
+                outputFile.write(out, 4);
+            }
+
+            int padding = inputLength % 3;
+            if(padding)
+            {
+                if(padding == 1)
+                {
+                    inputFile.read(in, 2);
+                }
+                else // padding == 2
+                {
+                    inputFile.read(in, 1);
+                    in[1] = '=';
+                }
+
+                in[2] = '=';
+            }
+
+            Base64Encoder::encode(in, out);
+            outputFile.write(out, 4);
+        }
+        else // decode
+        {
+
+        }
+
+        inputFile.close();
+        outputFile.close();
+
+        cout << "Done." << endl;
+
+        return 0;
+    }
+    
     return 0;
 }
 
