@@ -5,48 +5,33 @@ class Base64Decoder
 public:
     static void decode(const char (&input)[4], char (&output)[3])
     {
-        // get last 6 from input[0] (bit 0 and bit 1 are always zeros)
-        // append bits 2 and 3 from input[1] to the result
-        output[0] = reverseLookupTable[(input[0] & 0x3F) | ((input[1] << 2) >> 6)];
-        // get last 4 bits from input[1], and bits 2, 3, 4, 5 from input[2]
-        output[1] = reverseLookupTable[(input[1] & 0xF) | ((input[2] << 2) >> 4)];
-        
-        // get last 2 bits from input[2] and last 6 bits from input[3]
-        output[2] = reverseLookupTable[(input[2] & 0x3) | (input[2] & 0x3F)];
+        int tmp = (reverseLookupTable[(int)input[0]] << 18) +
+                  (reverseLookupTable[(int)input[1]] << 12) +
+                  (reverseLookupTable[(int)input[2]] << 6) +
+                  (reverseLookupTable[(int)input[3]]);
+
+        output[0] = ((tmp >> 16) & 0xFF);
+        output[1] = ((tmp >> 8)  & 0xFF);
+        output[2] = ( tmp        & 0xFF);
     }
 
 private:
     static constexpr char reverseLookupTable[128] = {
-             0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 
-             0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 
-             0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , 
-             0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,
-             0 ,  0 ,  0 ,                                    //  0  - 47 [non-base64]
-             
-                            '+' ,                             // 43       [ + ]
-    
-                                 0 ,  0 ,  0 ,                // 44  - 46 [non-base64]
-    
-                                                '/' ,         // 47       [ / ]
-    
-                                                     0 ,  1 ,
-             2 ,  3 ,  4 ,  5 ,  6 ,  7 ,  8 ,  9 ,           // 48  - 57 [0-9]
-            
-                                                     0 ,  0 ,                         
-             0 ,  0 ,  0 ,  0 ,  0 ,                          // 58  - 64 [non-base64]
-            
-                                     'A', 'B', 'C', 'D', 'E', 
-            'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
-            'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y',
-            'Z',                                              // 65  - 90 [A-Z] 
-    
-                  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,                // 91  - 96 [non-base64]
-    
-                                               'a', 'b', 'c',
-            'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-            'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w',
-            'x', 'y', 'z',                                    // 97  - 122 [a-z]
-    
-                            0 ,  0 ,  0 ,  0 ,  0 ,           // 123 - 127 [non-base-64]
+             0,   0,   0,   0,   0,   0,   0,   0, 
+             0,   0,   0,   0,   0,   0,   0,   0, 
+             0,   0,   0,   0,   0,   0,   0,   0, 
+             0,   0,   0,   0,   0,   0,   0,   0, 
+             0,   0,   0,   0,   0,   0,   0,   0, 
+             0,   0,   0,  62,   0,   0,   0,  63, 
+            52,  53,  54,  55,  56,  57,  58,  59, 
+            60,  61,   0,   0,   0,   0,   0,   0, 
+             0,   0,   1,   2,   3,   4,   5,   6, 
+             7,   8,   9,  10,  11,  12,  13,  14, 
+            15,  16,  17,  18,  19,  20,  21,  22, 
+            23,  24,  25,   0,   0,   0,   0,   0, 
+             0,  26,  27,  28,  29,  30,  31,  32, 
+            33,  34,  35,  36,  37,  38,  39,  40, 
+            41,  42,  43,  44,  45,  46,  47,  48, 
+            49,  50,  51,   0,   0,   0,   0,   0,
         };
 };

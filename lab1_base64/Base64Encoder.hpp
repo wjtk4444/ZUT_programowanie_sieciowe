@@ -5,17 +5,14 @@ class Base64Encoder
 public:
     static void encode(const char (&input)[3], char (&output)[4], int padding = 0)
     {
-        output[0] = lookupTable[(input[0] >> 2)]; // get first 6 bits from input[0]
-        
-        // get last 2 bits from input[0], move them 4 positions to the left
-        // and append first 4 bits from input[1] to the result
-        output[1] = lookupTable[((input[0] & 0x3 ) << 4) | (input[1] >> 4)];
-        
-        // get last 4 bits from input[1], move them 2 positions to the left
-        // and append first 2 bits from input[2] to the result
-        output[2] = padding > 1 ? '=' : lookupTable[((input[1] & 0xF ) << 2) | (input[2] >> 6)];
-        
-        output[3] = padding ? '=' : lookupTable[(input[2] &  0x3F)]; // get last 6 bits from input[2]
+        int tmp = (input[0] << 16) +
+                  (input[1] << 8) +
+                  (input[2]);
+
+        output[0] = lookupTable[(tmp >> 18) & 0x3F];
+        output[1] = lookupTable[(tmp >> 12) & 0x3F];
+        output[2] = padding > 1 ? '=' : lookupTable[(tmp >> 6)  & 0x3F];
+        output[3] = padding > 0 ? '=' : lookupTable[ tmp        & 0x3F];
     }
 
 private:
