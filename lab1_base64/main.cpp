@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     }
     else if(argc == 4)
     {
-        ifstream inputFile(argv[2], ios::in | ios::binary);
+        ifstream inputFile(argv[2], ios::binary);
         if(!inputFile.is_open())
         {
             cout << "Failed to open file\"" << argv[2] << "\" for reading." << endl;
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
             return 0;
         }
 
-        ofstream outputFile(argv[3], ios::out | ios::binary);
+        ofstream outputFile(argv[3], ios::binary);
         if(!outputFile.is_open())
         {
             cout << "Failed to open file\"" << argv[3] << "\" for writing." << endl;
