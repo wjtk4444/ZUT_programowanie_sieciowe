@@ -1,11 +1,42 @@
 #pragma once
 
+#include<ostream>
+
 class Base64Encoder
 {
 public:
-    static void encode(const char (&input)[3], char (&output)[4], int padding = 0)
+    static void encodeStream(std::istream &input, std::ostream &output)
     {
-        int tmp = (input[0] << 16) +
+        unsigned char inputBytes[3], outputBytes[4];
+
+        while(true)
+        {
+            input.read((char*)&inputBytes, 3);
+        
+            int read = input.gcount();
+            if(!read) // EOF reached
+                break;
+           
+            if(read == 3)
+            {
+                encodeBytes(inputBytes, outputBytes);
+            }
+            else // 2 or 1
+            {
+                inputBytes[2] = 0;
+                if(read == 1)
+                    inputBytes[1] = 0;
+                
+                encodeBytes(inputBytes, outputBytes, 3 - read);
+            }
+
+            output.write((char*)&outputBytes, 4);
+        }
+    }
+
+    static void encodeBytes(const unsigned char (&input)[3], unsigned char (&output)[4], int padding = 0)
+    {
+        unsigned int tmp = (input[0] << 16) +
                   (input[1] << 8) +
                   (input[2]);
 

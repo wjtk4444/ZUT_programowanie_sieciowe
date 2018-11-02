@@ -1,14 +1,47 @@
 #pragma once
 
+#include<ostream>
+
 class Base64Decoder
 {
 public:
-    static void decode(const char (&input)[4], char (&output)[3])
+    static void decodeStream(std::istream &input, std::ostream &output)
     {
-        int tmp = (reverseLookupTable[(int)input[0]] << 18) +
-                  (reverseLookupTable[(int)input[1]] << 12) +
-                  (reverseLookupTable[(int)input[2]] << 6) +
-                  (reverseLookupTable[(int)input[3]]);
+        unsigned char inputBytes[4], outputBytes[3];
+
+        while(true)
+        {
+            input.read((char*)&inputBytes, 4);
+        
+            int read = input.gcount();
+            if(!read) // EOF reached
+                break;
+            
+            if(read == 4)
+            {
+                decodeBytes(inputBytes, outputBytes);
+            }
+            else // <4
+            {
+                inputBytes[3] = 0;
+                if(read < 3)
+                    inputBytes[2] = 0;
+                if(read < 2)
+                    inputBytes[1] = 0;
+
+                decodeBytes(inputBytes, outputBytes);
+            }
+
+            output.write((char*)&outputBytes, 3);
+        }
+    }
+
+    static void decodeBytes(const unsigned char (&input)[4], unsigned char (&output)[3])
+    {
+        unsigned int tmp = (reverseLookupTable[input[0]] << 18) +
+                  (reverseLookupTable[input[1]] << 12) +
+                  (reverseLookupTable[input[2]] << 6) +
+                  (reverseLookupTable[input[3]]);
 
         output[0] = ((tmp >> 16) & 0xFF);
         output[1] = ((tmp >> 8)  & 0xFF);
