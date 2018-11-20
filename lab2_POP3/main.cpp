@@ -7,6 +7,54 @@
 
 using namespace std;
 
+bool authenticate(TCPConnection *POP3Server, string username, string password)
+{
+    string serverResponse;
+    if(!POP3Server->receiveData(serverResponse))
+    {
+        cout << "No response from server." << endl;
+        return false;
+    }
+        cout << serverResponse;
+    
+
+    if(!POP3Server->sendData(string("USER ") + username + "\r\n"))
+    {
+        cout << "Failed to send USER command" << endl;
+        return false;
+    }
+
+    if(!POP3Server->receiveData(serverResponse))
+    {
+        cout << "No response from server." << endl;
+        return false;
+    }
+        cout << serverResponse;
+
+    if(!POP3Server->sendData(string("PASS ") + password + "\r\n"))
+    {
+        cout << "Failed to send USER command" << endl;
+        return false;
+    }
+
+    if(!POP3Server->receiveData(serverResponse))
+    {
+        cout << "No response from server." << endl;
+        return false;
+    }
+        cout << serverResponse;
+    
+    if(serverResponse.find("-ERR") != string::npos)
+    {
+        cout << "Authentifiction failed" << endl;
+        return false;
+    }
+
+    cout << "Authentification successful" << endl;
+    
+    return true;
+}
+
 int main(int argc, char **argv)
 {
     map<string, string> settings;
@@ -41,53 +89,16 @@ int main(int argc, char **argv)
     else
         cout << "Failed to initialize connection" << endl;
     
-   
-    // authentication
-    if(!POP3Server.sendData(string("USER ") + settings["username"] + "\r\n"))
-    {
-        cout << "Failed to send USER command" << endl;
-        return 1;
-    }
-
-    if(!POP3Server.receiveData(serverResponse))
-    {
-        cout << "No response from server." << endl;
-        return 1;
-    }
-
-    if(!POP3Server.sendData(string("PASS ") + settings["password"] + "\r\n"))
-    {
-        cout << "Failed to send USER command" << endl;
-        return 1;
-    }
-
-    if(!POP3Server.receiveData(serverResponse))
-    {
-        cout << "No response from server." << endl;
-        return 1;
-    }
-    
-    if(serverResponse.find("-ERR") != string::npos)
-    {
-        cout << serverResponse;
-        return 1;
-    }
-    else
-    {
-        cout << "Authentification successful" << endl;
-    }
-
+    authenticate(&POP3Server, settings["username"], settings["password"]);
     // get list of messages
     if(!POP3Server.sendData(string("LIST\r\n")))
     {
         cout << "Failed to send STAT command" << endl;
-        return 1;
     }
 
     if(!POP3Server.receiveData(serverResponse))
     {
         cout << "No response from server." << endl;
-        return 1;
     }
     
     cout << serverResponse;
@@ -104,8 +115,9 @@ int main(int argc, char **argv)
         cout << "No response from server." << endl;
         return 1;
     }
-    
-    if(serverResponse.find("+OK") != string::npos)
+        cout << serverResponse;
+  
+  if(serverResponse.find("+OK") != string::npos)
     {
         cout << serverResponse;
         return 0;
@@ -116,7 +128,6 @@ int main(int argc, char **argv)
         cout << "Failed to properly close connection." << endl;
         return 1;
     }
-
 
     POP3Server.closeConnection();
 
