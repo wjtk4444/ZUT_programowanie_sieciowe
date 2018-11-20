@@ -2,12 +2,27 @@
 #include<sys/socket.h>
 #include<arpa/inet.h>
 #include<netdb.h>
+#include<openssl/ssl.h>
+#include<openssl/err.h>
+
+#include<iostream>
 
 class TCPConnection
 {
 public:
-    TCPConnection(std::string address, int port) : address(address), port(port)
+    TCPConnection(std::string address, int port, bool useSSL) : address(address), port(port), useSSL(useSSL)
     {
+        if(useSSL)
+        {
+            SSL_library_init();
+            OpenSSL_add_all_algorithms();
+            SSL_load_error_strings();
+            const SSL_METHOD *sslMethod = TLS_client_method();
+            ctx = SSL_CTX_new(sslMethod);
+            if(ctx == NULL)
+                throw std::runtime_error("Failed to initialize SSL context.");
+        }
+    
         sock = socket(AF_INET, SOCK_STREAM, 0);
         if(sock == -1)
             throw std::runtime_error("Could not create socket.");
@@ -27,11 +42,32 @@ public:
 
         server.sin_family = AF_INET;
         server.sin_port = htons(port);
+
+        if(useSSL)
+            ssl = SSL_new(ctx);
     }
 
     bool initializeConnection()
     {
         if(connect(sock, (struct sockaddr *)&server, sizeof(server)) < 0)
+            return false;
+        
+        if(useSSL)
+        {
+            SSL_set_fd(ssl, sock);
+            if(SSL_connect(ssl) < 0)
+                return false;
+        }
+
+        return true;
+    }
+
+    bool closeConnection()
+    {
+        if(useSSL)
+            SSL_CTX_free(ctx);
+
+        if(shutdown(sock, 0) < 0)
             return false;
 
         return true;
@@ -40,8 +76,8 @@ public:
     bool receiveData(std::string &result, int bufferSize = 1024)
     {
         char *buffer = new char[bufferSize];
-        
-        if(recv(sock, buffer, sizeof(buffer), 0) < 0)
+   
+        if(useSSL ? SSL_read(ssl, buffer, bufferSize) : recv(sock, buffer, bufferSize, 0) < 0)
         {
             delete[] buffer;
             return false;
@@ -54,26 +90,19 @@ public:
     }
 
     bool sendData(std::string data)
-    {
-        if(send(sock, data.c_str(), data.length() + 1, 0) < 0) // +1 because of the \0 character at the end
+    {   
+        // +1 because of the \0 character at the end
+        if(useSSL ? SSL_write(ssl, data.c_str(), data.length() + 1) : send(sock, data.c_str(), data.length() + 1, 0) < 0)
             return false;
-        
+            
         return true;
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
 private:
+    SSL_CTX *ctx;
+    SSL *ssl;
+
+    bool useSSL;
     int sock;
     int port;
     std::string address;
