@@ -37,20 +37,20 @@ public:
         return true;
     }
         
-    std::string receiveData(int bufferSize = 1024)
+    bool receiveData(std::string &result, int bufferSize = 1024)
     {
         char *buffer = new char[bufferSize];
         
         if(recv(sock, buffer, sizeof(buffer), 0) < 0)
         {
             delete[] buffer;
-            return nullptr;
+            return false;
         }
 
-        std::string data(buffer);
+        result = buffer;
         delete[] buffer;
     
-        return data;
+        return true;
     }
 
     bool sendData(std::string data)
