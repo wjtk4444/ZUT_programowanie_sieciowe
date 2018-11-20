@@ -77,7 +77,7 @@ public:
     {
         char *buffer = new char[bufferSize];
    
-        if(useSSL ? SSL_read(ssl, buffer, bufferSize) : recv(sock, buffer, bufferSize, 0) < 0)
+        if((useSSL ? SSL_read(ssl, buffer, bufferSize) : recv(sock, buffer, bufferSize, 0)) < 0)
         {
             delete[] buffer;
             return false;
@@ -92,7 +92,8 @@ public:
     bool sendData(std::string data)
     {   
         // +1 because of the \0 character at the end
-        if(useSSL ? SSL_write(ssl, data.c_str(), data.length() + 1) : send(sock, data.c_str(), data.length() + 1, 0) < 0)
+        if((useSSL ? SSL_write(ssl, data.c_str(), data.length() + 1) :
+            send(sock, data.c_str(), data.length() + 1, 0)) < 0)
             return false;
             
         return true;
