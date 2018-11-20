@@ -1,4 +1,5 @@
 #include<string>
+#include<cstring>
 #include<sys/socket.h>
 #include<arpa/inet.h>
 #include<netdb.h>
@@ -76,7 +77,8 @@ public:
     bool receiveData(std::string &result, int bufferSize = 1024)
     {
         char *buffer = new char[bufferSize];
-   
+        memset(buffer, 0, bufferSize);
+  
         if((useSSL ? SSL_read(ssl, buffer, bufferSize) : recv(sock, buffer, bufferSize, 0)) < 0)
         {
             delete[] buffer;
