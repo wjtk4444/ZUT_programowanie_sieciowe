@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=--std=c++11 -lssl -lcrypto 
+CXXFLAGS=--std=c++11 -lssl -lcrypto -Wall -Wno-reorder
 
 make: main.cpp
 	$(CXX) $(CXXFLAGS) main.cpp
