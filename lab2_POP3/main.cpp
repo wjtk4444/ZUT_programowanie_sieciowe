@@ -95,16 +95,16 @@ bool closeConnectionServerside(TCPConnection *POP3Server)
     string serverResponse;
     
     // QUIT command
-    if(!sendCommandAndPrintResponse(POP3Server, string("PASS") + SUFFIX, serverResponse))
-  
-    // "parsing" server response
-    if(serverResponse.find("-ERR") != string::npos)
-    {
-        colorPrint(RED, "Failed to properly close connection");
-        return false;
-    }
+    if((!sendCommandAndPrintResponse(POP3Server, string("QUIT") + SUFFIX, serverResponse))
+        // "parsing" server response
+        || (serverResponse.find("-ERR") != string::npos))
+        {
+            colorPrint(RED, "Failed to properly close connection (serverside)");
+            return false;
+        }
 
-    colorPrint(GREEN, "Connection closed: " + serverResponse);
+    colorPrint(GREEN, "Connection closed successfully (serverside): ", false);
+    prettyPrintServerResponse(serverResponse);
 
     return true;
 }
@@ -163,7 +163,10 @@ int main(int argc, char **argv)
     prettyPrintServerResponse(serverResponse); 
 
     closeConnectionServerside(&POP3Server);
-    POP3Server.closeConnection();
+    if(POP3Server.closeConnection())
+        colorPrint(GREEN, "Successfully closed connection (clientside)");
+    else
+        colorPrint(RED, "Failed to properly close connection (clientside)");
 
     return 0;
 }
