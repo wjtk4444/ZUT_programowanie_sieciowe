@@ -16,27 +16,39 @@
 #define WHITE   "\x1B[37m"
 #define RESET   "\x1B[0m"
 
+// print client-server communication
+#define DEBUG_MSG true
+#define DEBUG     string("[DEBUG]: ")
 using namespace std;
 
 void colorPrint(string color, string message, bool newLine = true)
 {
-    cout << color << message << (newLine ? "\n" : "") << RESET;
+    cout << color << message << RESET << (newLine ? "\n" : "");
 }
 
 void prettyPrintServerResponse(string message)
 {
+    if(!DEBUG_MSG) return;
     colorPrint(message.find("-ERR") == string::npos ? BLUE : RED,
-        "Server response: " + message, message[message.length() - 1] != '\n');
+        DEBUG + "Server response: " + message, message[message.length() - 1] != '\n');
 }
 
 void prettyPrintSentCommand(string command)
 {
-    colorPrint(GREEN, "Command sent: " + command, command[command.length() - 1] != '\n');
+    if(!DEBUG_MSG) return;
+    colorPrint(GREEN, DEBUG + "Command sent: " + command, command[command.length() - 1] != '\n');
 }
 
 void prettyPrintFailedCommand(string command)
 {
-    colorPrint(RED, "Failed to send command: " + command, command[command.length() - 1] != '\n');
+    if(!DEBUG_MSG) return;
+    colorPrint(RED, DEBUG + "Failed to send command: " + command, command[command.length() - 1] != '\n');
+}
+
+void prettyPrintNoResponse()
+{
+    if(!DEBUG_MSG) return;
+    colorPrint(RED, DEBUG + "No response from server");
 }
 
 bool sendCommandAndPrintResponse(TCPConnection *connection, string command, string &response)
@@ -50,7 +62,7 @@ bool sendCommandAndPrintResponse(TCPConnection *connection, string command, stri
 
     if(!connection->receiveData(response))
     {
-        colorPrint(RED, "No response from server");
+        prettyPrintNoResponse(); 
         return false;
     }
     prettyPrintServerResponse(response); 
@@ -65,7 +77,7 @@ bool authenticate(TCPConnection *POP3Server, string username, string password)
     // wp.pl hack
     if(!POP3Server->receiveData(serverResponse))
     {
-        colorPrint(RED, "No response from server");
+        prettyPrintNoResponse(); 
         return false;
     }
     prettyPrintServerResponse(serverResponse); 
@@ -158,7 +170,7 @@ int main(int argc, char **argv)
         colorPrint(RED, "Failed to send STAT command");
 
     if(!POP3Server.receiveData(serverResponse))
-        colorPrint(RED, "No response from server");
+        prettyPrintNoResponse(); 
 
     prettyPrintServerResponse(serverResponse); 
 
