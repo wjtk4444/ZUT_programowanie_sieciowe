@@ -50,46 +50,51 @@ void prettyPrintNoResponse()
     if(!DEBUG_MSG) return;
     colorPrint(RED, DEBUG + "No response from server");
 }
-
-bool sendCommandAndPrintResponse(TCPConnection *connection, string command, string &response)
+bool sendCommand(TCPConnection *connection, string command)
 {
     if(!connection->sendData(command))
     {
         prettyPrintFailedCommand(command);
         return false;
     }
+    
     prettyPrintSentCommand(command);
+    return true;
+}
 
+bool printResponse(TCPConnection *connection, string &response)
+{
     if(!connection->receiveData(response))
     {
         prettyPrintNoResponse(); 
         return false;
     }
-    prettyPrintServerResponse(response); 
     
+    prettyPrintServerResponse(response); 
     return true;
 }
 
 bool authenticate(TCPConnection *POP3Server, string username, string password)
 {
-    string serverResponse;
+    colorPrint(WHITE, "Authenticating on server...");
     
+    string command, serverResponse;
+
     // wp.pl hack
-    if(!POP3Server->receiveData(serverResponse))
-    {
-        prettyPrintNoResponse(); 
-        return false;
-    }
-    prettyPrintServerResponse(serverResponse); 
+    if(!printResponse(POP3Server, serverResponse));
    
     // authentication process
     // USER command
-    if(!sendCommandAndPrintResponse(POP3Server, string("USER ") + username + SUFFIX, serverResponse))
-        return false;
-    // PASS command
-    if(!sendCommandAndPrintResponse(POP3Server, string("PASS ") + password + SUFFIX, serverResponse))
-        return false;
+    command = string("USER ") + username + SUFFIX;
+    sendCommand(POP3Server, command);
     
+    // PASS command
+    command = string("PASS ") + password + SUFFIX;
+    sendCommand(POP3Server, command);
+    
+    if(!printResponse(POP3Server, serverResponse));
+
+   
     // "parsing" server response
     if(serverResponse.find("-ERR") != string::npos)
     {
@@ -104,21 +109,36 @@ bool authenticate(TCPConnection *POP3Server, string username, string password)
 
 bool closeConnectionServerside(TCPConnection *POP3Server)
 {
-    string serverResponse;
-    
     // QUIT command
-    if((!sendCommandAndPrintResponse(POP3Server, string("QUIT") + SUFFIX, serverResponse))
-        // "parsing" server response
-        || (serverResponse.find("-ERR") != string::npos))
-        {
+    // fail on:
+    // - sending failed
+    // - getting response failed
+    // - error in response
+    string serverResponse;
+    if( (!sendCommand(POP3Server, string("QUIT") + SUFFIX)) ||
+        (!printResponse(POP3Server, serverResponse)) ||
+        (serverResponse.find("-ERR") != string::npos))
+        {    
             colorPrint(RED, "Failed to properly close connection (serverside)");
             return false;
         }
 
-    colorPrint(GREEN, "Connection closed successfully (serverside): ", false);
-    prettyPrintServerResponse(serverResponse);
+    colorPrint(GREEN, "Connection closed successfully (serverside)");
 
     return true;
+}
+
+int closeConnections(TCPConnection *POP3Server, string reason)
+{
+    colorPrint(reason.find("error") == string::npos ? WHITE : RED, "Closing connections due to " + reason);
+    
+    closeConnectionServerside(POP3Server);
+    if(POP3Server->closeConnection())
+        colorPrint(GREEN, "Successfully closed connection (clientside)");
+    else
+        colorPrint(RED, "Failed to properly close connection (clientside)");
+    
+    return 1;
 }
 
 int main(int argc, char **argv)
@@ -150,36 +170,28 @@ int main(int argc, char **argv)
     TCPConnection POP3Server(settings["address"], atoi(settings["port"].c_str()),
         atoi(settings["useSSL"].c_str()) != 0);
    
+    colorPrint(WHITE, "Initalizing connection...");
+
     // initialize connection
-    if(POP3Server.initializeConnection() == true)
-        colorPrint(GREEN, "Connection initialized successfully");
-    else
-        colorPrint(RED, "failed to initialize connection");
+    if(!POP3Server.initializeConnection())
+        return closeConnections(&POP3Server, "error while initalizing connection");
+
+    colorPrint(GREEN, "Connection initialized successfully");
     
     // authenticate on server
     if(!authenticate(&POP3Server, settings["username"], settings["password"]))
-    {
-        closeConnectionServerside(&POP3Server);
-        POP3Server.closeConnection();
-        return 1;
-    }
-
+        return closeConnections(&POP3Server, "authentication error");
+    
     string serverResponse;
-    // get list of messages
-    if(!POP3Server.sendData(string("LIST") + SUFFIX))
-        colorPrint(RED, "Failed to send STAT command");
+    
+    // get message list
+    colorPrint(WHITE, "Obtaining message list...");
+    if(!sendCommand(&POP3Server, string("LIST") + SUFFIX) ||
+       !printResponse(&POP3Server, serverResponse))
+        return closeConnections(&POP3Server, "error getting message list");
 
-    if(!POP3Server.receiveData(serverResponse))
-        prettyPrintNoResponse(); 
-
-    prettyPrintServerResponse(serverResponse); 
-
-    closeConnectionServerside(&POP3Server);
-    if(POP3Server.closeConnection())
-        colorPrint(GREEN, "Successfully closed connection (clientside)");
-    else
-        colorPrint(RED, "Failed to properly close connection (clientside)");
-
+    closeConnections(&POP3Server, "application exit.");
+    
     return 0;
 }
 
