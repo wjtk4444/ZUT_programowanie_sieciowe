@@ -5,7 +5,7 @@
 #include<netdb.h>
 #include<openssl/ssl.h>
 #include<openssl/err.h>
-
+#include<unistd.h>
 #include<iostream>
 
 class TCPConnection
@@ -78,8 +78,8 @@ public:
     {
         char *buffer = new char[bufferSize];
         memset(buffer, 0, bufferSize);
-  
-        if((useSSL ? SSL_read(ssl, buffer, bufferSize) : recv(sock, buffer, bufferSize, 0)) < 0)
+ 
+        if((useSSL ? SSL_read(ssl, buffer, bufferSize) : read(sock, buffer, bufferSize)) < 0)
         {
             delete[] buffer;
             return false;
@@ -93,9 +93,8 @@ public:
 
     bool sendData(std::string data)
     {   
-        // +1 because of the \0 character at the end
-        if((useSSL ? SSL_write(ssl, data.c_str(), data.length() + 1) :
-            send(sock, data.c_str(), data.length() + 1, 0)) < 0)
+        if((useSSL ? SSL_write(ssl, data.c_str(), data.length()) :
+            write(sock, data.c_str(), data.length())) < 0)
             return false;
             
         return true;

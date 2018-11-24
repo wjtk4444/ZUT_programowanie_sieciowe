@@ -80,20 +80,24 @@ bool authenticate(TCPConnection *POP3Server, string username, string password)
     
     string command, serverResponse;
 
-    // wp.pl hack
-    if(!printResponse(POP3Server, serverResponse));
-   
+    if(!printResponse(POP3Server, serverResponse))
+        return false;
+
     // authentication process
     // USER command
     command = string("USER ") + username + SUFFIX;
-    sendCommand(POP3Server, command);
+    if(!sendCommand(POP3Server, command))
+        return false;
+    
+    if(!printResponse(POP3Server, serverResponse))
+        return false;
     
     // PASS command
     command = string("PASS ") + password + SUFFIX;
     sendCommand(POP3Server, command);
     
-    if(!printResponse(POP3Server, serverResponse));
-
+    if(!printResponse(POP3Server, serverResponse))
+        return false;
    
     // "parsing" server response
     if(serverResponse.find("-ERR") != string::npos)
