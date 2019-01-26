@@ -1,4 +1,7 @@
+#pragma once
+
 #include<string>
+#include<iostream>
 #include<cstring>
 #include<sys/socket.h>
 #include<arpa/inet.h>
@@ -6,7 +9,6 @@
 #include<openssl/ssl.h>
 #include<openssl/err.h>
 #include<unistd.h>
-#include<iostream>
 
 class TCPConnection
 {
@@ -46,6 +48,14 @@ public:
 
         if(useSSL)
             ssl = SSL_new(ctx);
+
+        connectionActive = false;
+    }
+
+    ~TCPConnection()
+    {
+        if(connectionActive)
+            closeConnection();
     }
 
     bool initializeConnection()
@@ -60,6 +70,7 @@ public:
                 return false;
         }
 
+        connectionActive = true;
         return true;
     }
 
@@ -68,31 +79,40 @@ public:
         if(useSSL)
             SSL_CTX_free(ctx);
 
-        if(shutdown(sock, 0) < 0)
+        if(close(sock) < 0)
             return false;
 
+        connectionActive = false;
         return true;
     }
         
-    bool receiveData(std::string &result, int bufferSize = 1024)
+    bool receiveData(std::string &result, std::string end, int bufferSize = 65534)
     {
-        char *buffer = new char[bufferSize];
+        char *buffer = new char[bufferSize + 1];
         memset(buffer, 0, bufferSize);
- 
-        if((useSSL ? SSL_read(ssl, buffer, bufferSize) : read(sock, buffer, bufferSize)) < 0)
+
+        result = "";
+        while(result.find(end) == std::string::npos)
         {
-            delete[] buffer;
-            return false;
+            if((useSSL ? SSL_read(ssl, buffer, bufferSize) : read(sock, buffer, bufferSize)) < 0)
+            {
+                delete[] buffer;
+                return false;
+            }
+            
+            result += buffer;
         }
 
-        result = buffer;
         delete[] buffer;
     
+        //std::cout << "RECV: " << result << std::endl;
         return true;
     }
 
     bool sendData(std::string data)
-    {   
+    {  
+        //std::cout << "SEND: " << data << std::endl;
+
         if((useSSL ? SSL_write(ssl, data.c_str(), data.length()) :
             write(sock, data.c_str(), data.length())) < 0)
             return false;
@@ -100,10 +120,16 @@ public:
         return true;
     }
 
+    bool isActive()
+    {
+        return connectionActive;
+    }
+
 private:
     SSL_CTX *ctx;
     SSL *ssl;
 
+    bool connectionActive;
     bool useSSL;
     int sock;
     int port;
